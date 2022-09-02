@@ -3,17 +3,24 @@ package com.zehro.countryinfo.viewmodel
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.zehro.countryinfo.data.CountriesService
 import com.zehro.countryinfo.model.Country
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.*
+import retrofit2.Response
 import javax.inject.Inject
 
 @HiltViewModel
 class ListViewModel @Inject constructor(
 
 ): ViewModel() {
+
+    val countriesService = CountriesService.getCountriesService()
+    var job: Job? = null
+    val exceptionHandler = CoroutineExceptionHandler { coroutineContext, throwable ->
+        onError("Exception: ${throwable.localizedMessage}")
+    }
+
     var countries = mutableStateOf(emptyList<Country>())
     var countryLoadError = mutableStateOf("")
     var loading = mutableStateOf(false)
@@ -35,13 +42,32 @@ class ListViewModel @Inject constructor(
     private suspend fun fetchCountries() {
         loading.value = true
 
-        delay(2000L) // to simulate network request
+        delay(1000L) // to simulate network request
 
+        // Using network so uses Dispatchers.IO
+        job = CoroutineScope(Dispatchers.IO + exceptionHandler).launch {
+            val response: Response<List<Country>> = countriesService.getCountries()
+            withContext(Dispatchers.Main) {
+                if (response.isSuccessful) {
+                    countries.value = response.body()!!
+                    countryLoadError.value = null.toString()
+                    loading.value = false
+                } else {
+                    onError("Error ${response.message()}")
+                }
+            }
+        }
+
+
+
+        /*
         val dummyData: List<Country> = generateDummyCountries()
 
         countries.value = dummyData
         countryLoadError.value = "ERROR" // simulate a failure
         loading.value = false
+
+        */
     }
 
     private fun generateDummyCountries(): List<Country> {
@@ -57,5 +83,10 @@ class ListViewModel @Inject constructor(
     private fun onError(msg: String) {
         countryLoadError.value = msg
         loading.value = false
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        job?.cancel()
     }
 }
