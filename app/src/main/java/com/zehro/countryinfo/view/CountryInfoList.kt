@@ -43,13 +43,13 @@ fun CountryInfoList(
 
 @Composable
 fun CountryItem(it: Country) {
-    Row(modifier = Modifier.fillMaxSize().padding(10.dp), verticalAlignment = Alignment.CenterVertically) {
+    Row(modifier = Modifier.fillMaxSize().padding(horizontal = 10.dp), verticalAlignment = Alignment.CenterVertically) {
         it.flag?.let { it1 ->
             Image(
                 painter = rememberImagePainter(data = it1),
                 contentDescription = "Image",
                 modifier = Modifier
-                    .height(100.dp)
+                    .height(85.dp)
                     .width(100.dp)
             )
         }
